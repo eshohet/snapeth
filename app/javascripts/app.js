@@ -120,6 +120,19 @@ window.App = {
             this.camera.style.display = "none";
         });
     },
+    sendPhoto: function() {
+        let image = new Image();
+        image.src = this.photo.toDataURL("image/png");
+        const pair = App.generatePubPriv('hello');
+        App.encrypt(image.src, pair.pub).then((enc) => {
+            const cipher = Buffer.from(enc.ciphertext).toString('hex');
+            const iv = Buffer.from(enc.iv).toString('hex');
+            const mac = Buffer.from(enc.mac).toString('hex');
+            const to = account;
+            snapchat.sendPhoto(to, cipher, iv, mac, {from: account});
+        })
+    },
+
     getPrivateKey: {
         //grabs private key from contract
     },

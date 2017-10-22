@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "description": "Frontend example using truffle v3",
   "scripts": {
-    "testrpc": "./node_modules/ethereumjs-testrpc/build/cli.node.js",
+    "testrpc": "./node_modules/ethereumjs-testrpc/build/cli.node.js -m \"one two three four five six seven eight nine ten eleven twelve\"",
     "lint": "eslint ./",
     "build": "webpack",
     "dev": "webpack-dev-server",
