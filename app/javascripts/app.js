@@ -188,7 +188,7 @@ window.App = {
                 const privateKey = App.decryptPriv(password, ePriv);
                 const hash = response.args['hash'];
                 if (response.args['to'] === account) {
-                    $.get('http://' + ipfsHost + ':5001/ipfs/' + hash, (data) => {
+                    $.get('https://' + ipfsHost + ':5001/ipfs/' + hash, (data) => {
                         const split = data.split(',');
                         const cipher = new Buffer(hexStringToByte(split[0]));
                         const _iv = new Buffer(hexStringToByte(split[1]));
