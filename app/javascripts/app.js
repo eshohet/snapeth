@@ -132,12 +132,16 @@ window.App = {
             const to = account;
             ipfs.setProvider({host: 'localhost', port: '5001'});
             ipfs.add(cipher + "," + iv + "," + mac, (err, hash) => {
-                if(err)
+                if (err)
                     console.log(err);
                 else {
-                    snapchat.sendPhoto(to, hash, {from: account}, (err, txn) => {
-                        console.log(err, txn);
-                    });
+                    snapchat.sendPhoto(to, hash, {from: account})
+                        .then((result) => {
+                            console.log(result);
+                        })
+                        .catch((error) => {
+                            console.log(error);
+                        });
                 }
             });
         })
