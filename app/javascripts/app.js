@@ -124,7 +124,6 @@ window.App = {
         image.src = App.photo.toDataURL("image/png");
         const to = $("#to").val();
         const publicKey = await snapchat.getPub.call(to);
-        console.log(publicKey);
         App.encrypt(image.src, new Buffer(hexStringToByte(publicKey))).then((enc) => {
             const cipher = Buffer.from(enc.ciphertext).toString('hex');
             const iv = Buffer.from(enc.iv).toString('hex');
