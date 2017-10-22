@@ -15,24 +15,6 @@ import snapchat_artifacts from '../../build/contracts/Snapchat.json'
 // MetaCoin is our usable abstraction, which we'll use through the code below.
 let Snapchat = contract(snapchat_artifacts);
 
-// The following code is simple to show off interacting with your contracts.
-// As your needs grow you will likely need to change its form and structure.
-// For application bootstrapping, check out window.addEventListener below.
-
-function encrypt(text, password) {
-    let cipher = crypto.createCipher('aes-256-ctr', password);
-    let crypted = cipher.update(text, 'utf8', 'hex');
-    crypted += cipher.final('hex');
-    return crypted;
-}
-
-function decrypt(text, password) {
-    let decipher = crypto.createDecipher('aes-256-ctr', password);
-    let dec = decipher.update(text, 'hex', 'utf8');
-    dec += decipher.final('utf8');
-    return dec;
-}
-
 function hexStringToByte(str) {
     if (!str) {
         return new Uint8Array();
