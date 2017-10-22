@@ -3,9 +3,12 @@ pragma solidity ^0.4.15;
 contract Snapchat {
 
   mapping (address => string) public pubKeyRegistry;
-  mapping (address => string) public privKeyRegistry;
 
   event Photo(address indexed to, address indexed from, string hash);
+
+  function getPub(address receiver) public returns (string) {
+    return pubKeyRegistry[receiver];
+  }
 
   function updatePubRegistry(string pubKey) public {
     pubKeyRegistry[msg.sender] = pubKey;

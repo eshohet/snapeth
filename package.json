@@ -45,6 +45,7 @@
     "ipfs-js": "0.0.11",
     "jquery": "^3.2.1",
     "sjcl": "^1.0.7",
+    "sweetalert2": "^6.11.1",
     "truffle": "^3.4.11",
     "truffle-contract": "^2.0.5"
   }

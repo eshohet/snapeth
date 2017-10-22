@@ -9,6 +9,9 @@ import {default as eccrypto} from 'eccrypto';
 import {default as sjcl} from 'sjcl';
 import {default as ipfs} from 'ipfs-js';
 import {default as $} from 'jquery';
+import swal from 'sweetalert2'
+
+require('sweetalert2/dist/sweetalert2.min.css');
 
 // Import our contract artifacts and turn them into usable abstractions.
 import snapchat_artifacts from '../../build/contracts/Snapchat.json'
@@ -90,41 +93,42 @@ window.App = {
         // take photo
         this.camera.addEventListener("click", () => {
 
-            this.photo = document.createElement("canvas");
+            App.photo = document.createElement("canvas");
 
             // photo needs same dimensions as camera
-            this.photo.width = 160;
-            this.photo.height = 120;
+            App.photo.width = 640;
+            App.photo.height = 480;
 
-            document.body.appendChild(this.photo);
+            document.body.appendChild(App.photo);
 
             // write camera image to photo
-            var context = this.photo.getContext("2d");
-            context.drawImage(this.camera, 0, 0, 160, 120);
+            var context = App.photo.getContext("2d");
+            context.drawImage(App.camera, 0, 0, 640, 480);
 
             // add event listener to photo
-            this.photo.addEventListener("click", () => {
+            App.photo.addEventListener("click", () => {
 
                 // show camera and remove photo
-                this.camera.style.display = "block";
-                this.photo.remove();
+                App.camera.style.display = "block";
+                App.photo.remove();
             });
 
             // hide camera
             this.camera.style.display = "none";
         });
     },
-    sendPhoto: function () {
+    sendPhoto: async () => {
         let image = new Image();
-        image.src = this.photo.toDataURL("image/png");
-        const publicKey = window.localStorage.getItem('pubKey');
+        image.src = App.photo.toDataURL("image/png");
+        const to = $("#to").val();
+        const publicKey = await snapchat.getPub.call(to);
+        console.log(publicKey);
         App.encrypt(image.src, new Buffer(hexStringToByte(publicKey))).then((enc) => {
             const cipher = Buffer.from(enc.ciphertext).toString('hex');
             const iv = Buffer.from(enc.iv).toString('hex');
             const mac = Buffer.from(enc.mac).toString('hex');
             const ephemPublicKey = Buffer.from(enc.ephemPublicKey).toString('hex');
 
-            const to = account;
 
             ipfs.add(cipher + "," + iv + "," + mac + "," + ephemPublicKey, (err, hash) => {
                 if (err)
@@ -141,7 +145,7 @@ window.App = {
             });
         })
     },
-    register: function (password) {
+    generate: function (password) {
         //generate pub, priv, encrypted priv
         const privateKey = crypto.randomBytes(32);
         const publicKey = eccrypto.getPublic(privateKey);
@@ -149,7 +153,11 @@ window.App = {
         window.localStorage.setItem('ePrivKey', encryptedPrivate);
         window.localStorage.setItem('pubKey', Buffer.from(publicKey).toString('hex'));
 
-        snapchat.updatePubRegistry(encryptedPrivate, {from: account})
+        snapchat.updatePubRegistry(Buffer.from(publicKey).toString('hex'), {
+            from: account,
+            gas: 200000,
+            gasPrice: 1000000000
+        })
             .then((result) => {
                 console.log(result);
             })
@@ -157,31 +165,49 @@ window.App = {
                 console.log(error);
             });
     },
-    unlock: function (password) {
-        allEvents(snapchat.Photo, (error, response) => {
-            const ePriv = window.localStorage.getItem('ePrivKey');
-            const privateKey = App.decryptPriv(password, ePriv);
-            const hash = response.args['hash'];
-            $.get('http://localhost:5001/ipfs/' + hash, (data) => {
-                const split = data.split(',');
-                const cipher = new Buffer(hexStringToByte(split[0]));
-                const _iv = new Buffer(hexStringToByte(split[1]));
-                const _mac = new Buffer(hexStringToByte(split[2]));
-                const pub = new Buffer(hexStringToByte(split[3]));
+    register: function () {
+        swal({
+            title: 'Enter new encryption passphrase',
+            input: 'text',
+            inputPlaceholder: 'passphrase',
+            showCancelButton: true,
+        }).then(function (password) {
+            App.generate(password);
+        })
+    },
+    unlock: function () {
+        swal({
+            title: 'Enter encryption passphrase',
+            input: 'text',
+            inputPlaceholder: 'passphrase',
+            showCancelButton: true,
+        }).then(function (password) {
+            allEvents(snapchat.Photo, (error, response) => {
+                const ePriv = window.localStorage.getItem('ePrivKey');
+                const privateKey = App.decryptPriv(password, ePriv);
+                const hash = response.args['hash'];
+                if (response.args['to'] === account) {
+                    $.get('http://localhost:5001/ipfs/' + hash, (data) => {
+                        const split = data.split(',');
+                        const cipher = new Buffer(hexStringToByte(split[0]));
+                        const _iv = new Buffer(hexStringToByte(split[1]));
+                        const _mac = new Buffer(hexStringToByte(split[2]));
+                        const pub = new Buffer(hexStringToByte(split[3]));
 
-                const obj = {
-                    ciphertext: cipher,
-                    iv: _iv,
-                    mac: _mac,
-                    ephemPublicKey: pub
-                };
+                        const obj = {
+                            ciphertext: cipher,
+                            iv: _iv,
+                            mac: _mac,
+                            ephemPublicKey: pub
+                        };
 
-                App.decrypt(obj, privateKey).then((d) => {
-                    document.write('<img src="' + d.toString() + '" width="160" height="120" />');
-                }).catch((e) => {
-                    console.log(e)
-                });
-
+                        App.decrypt(obj, privateKey).then((d) => {
+                            document.write('<img src="' + d.toString() + '" width="640" height="480" />');
+                        }).catch((e) => {
+                            console.log(e)
+                        });
+                    });
+                }
 
             });
         });
