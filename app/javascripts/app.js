@@ -8,6 +8,7 @@ import {default as crypto} from 'crypto';
 import {default as eccrypto} from 'eccrypto';
 import {default as sjcl} from 'sjcl';
 import {default as ipfs} from 'ipfs-js';
+import {default as $} from 'jquery';
 
 // Import our contract artifacts and turn them into usable abstractions.
 import snapchat_artifacts from '../../build/contracts/Snapchat.json'
@@ -26,6 +27,7 @@ function hexStringToByte(str) {
     }
     return new Uint8Array(a);
 }
+
 function allEvents(ev, cb) {
     ev({}, {fromBlock: '0', toBlock: 'latest'}).get((error, results) => {
         if (error) return cb(error);
@@ -116,14 +118,16 @@ window.App = {
         let image = new Image();
         image.src = this.photo.toDataURL("image/png");
         const publicKey = window.localStorage.getItem('pubKey');
-        console.log(new Buffer(hexStringToByte(publicKey)));
         App.encrypt(image.src, new Buffer(hexStringToByte(publicKey))).then((enc) => {
+            console.log(enc);
             const cipher = Buffer.from(enc.ciphertext).toString('hex');
             const iv = Buffer.from(enc.iv).toString('hex');
             const mac = Buffer.from(enc.mac).toString('hex');
+            const ephemPublicKey = Buffer.from(enc.ephemPublicKey).toString('hex');
+
             const to = account;
 
-            ipfs.add(cipher + "," + iv + "," + mac, (err, hash) => {
+            ipfs.add(cipher + "," + iv + "," + mac + "," + ephemPublicKey, (err, hash) => {
                 if (err)
                     console.log(err);
                 else {
@@ -154,17 +158,35 @@ window.App = {
                 console.log(error);
             });
     },
-    unlock: function(password) {
-        const ePriv = window.localStorage.getItem('ePrivKey');
-        const privateKey = App.decryptPriv(password, ePriv);
-        console.log(privateKey);
-
+    unlock: function (password) {
         allEvents(snapchat.Photo, (error, response) => {
+            const ePriv = window.localStorage.getItem('ePrivKey');
+            const privateKey = App.decryptPriv(password, ePriv);
             const hash = response.args['hash'];
-            ipfs.catText(hash, (err, response) => {
-                if(err) console.log(err);
-                console.log(response.toString());
-            })
+            $.get('http://localhost:5001/ipfs/' + hash, (data) => {
+                const split = data.split(',');
+                const cipher = new Buffer(hexStringToByte(split[0]));
+                const _iv = new Buffer(hexStringToByte(split[1]));
+                const _mac = new Buffer(hexStringToByte(split[2]));
+                const pub = new Buffer(hexStringToByte(split[3]));
+
+                const obj = {
+                    ciphertext: cipher,
+                    iv: _iv,
+                    mac: _mac,
+                    ephemPublicKey: pub
+                };
+
+                console.log(obj);
+
+                App.decrypt(obj, privateKey).then((d) => {
+                    document.write('<img src="' + d.toString() + '" width="160" height="120" />');
+                }).catch((e) => {
+                    console.log(e)
+                });
+
+
+            });
         });
     },
     decryptPriv: function (password, encryptedPrivKey) {
