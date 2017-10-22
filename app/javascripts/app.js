@@ -146,10 +146,6 @@ window.App = {
             });
         })
     },
-
-    getPrivateKey: {
-        //grabs private key from contract
-    },
     generatePubPriv: function (password) {
         //generate pub, priv, encrypted priv
         const privateKey = crypto.randomBytes(32);
@@ -157,7 +153,6 @@ window.App = {
         const encryptedPrivate = App.encryptPriv(password, Buffer.from(privateKey).toString('hex'));
         return {
             pub: publicKey,
-            priv: privateKey,
             ePriv: encryptedPrivate
         }
     },

@@ -11,10 +11,6 @@ contract Snapchat {
     pubKeyRegistry[msg.sender] = pubKey;
   }
 
-  function updatePrivRegistry(string encryptedPriv) public {
-    privKeyRegistry[msg.sender] = encryptedPriv;
-  }
-
   function sendPhoto(address recipient, string hash) public {
     require(bytes(pubKeyRegistry[recipient]).length != 0);
     Photo(recipient, msg.sender, hash);
