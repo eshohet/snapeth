@@ -19,7 +19,7 @@ import snapchat_artifacts from '../../build/contracts/Snapchat.json'
 // MetaCoin is our usable abstraction, which we'll use through the code below.
 let Snapchat = contract(snapchat_artifacts);
 
-const ipfsHost = "d75b4398.ngrok.io";
+const ipfsHost = "169.254.5.248";
 
 function hexStringToByte(str) {
     if (!str) {
