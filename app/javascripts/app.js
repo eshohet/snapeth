@@ -26,6 +26,13 @@ function hexStringToByte(str) {
     }
     return new Uint8Array(a);
 }
+function allEvents(ev, cb) {
+    ev({}, {fromBlock: '0', toBlock: 'latest'}).get((error, results) => {
+        if (error) return cb(error);
+        results.forEach(result => cb(null, result));
+        ev().watch(cb);
+    })
+}
 
 let accounts, account, snapchat;
 
@@ -52,6 +59,8 @@ window.App = {
             account = accounts[0];
 
             snapchat = await Snapchat.deployed();
+            ipfs.setProvider({host: 'localhost', port: '5001'});
+
         });
 
         this.getElements();
@@ -106,13 +115,14 @@ window.App = {
     sendPhoto: function () {
         let image = new Image();
         image.src = this.photo.toDataURL("image/png");
-        const pair = App.generatePubPriv('hello');
-        App.encrypt(image.src, pair.pub).then((enc) => {
+        const publicKey = window.localStorage.getItem('pubKey');
+        console.log(new Buffer(hexStringToByte(publicKey)));
+        App.encrypt(image.src, new Buffer(hexStringToByte(publicKey))).then((enc) => {
             const cipher = Buffer.from(enc.ciphertext).toString('hex');
             const iv = Buffer.from(enc.iv).toString('hex');
             const mac = Buffer.from(enc.mac).toString('hex');
             const to = account;
-            ipfs.setProvider({host: 'localhost', port: '5001'});
+
             ipfs.add(cipher + "," + iv + "," + mac, (err, hash) => {
                 if (err)
                     console.log(err);
@@ -128,15 +138,34 @@ window.App = {
             });
         })
     },
-    generatePubPriv: function (password) {
+    register: function (password) {
         //generate pub, priv, encrypted priv
         const privateKey = crypto.randomBytes(32);
         const publicKey = eccrypto.getPublic(privateKey);
         const encryptedPrivate = App.encryptPriv(password, Buffer.from(privateKey).toString('hex'));
-        return {
-            pub: publicKey,
-            ePriv: encryptedPrivate
-        }
+        window.localStorage.setItem('ePrivKey', encryptedPrivate);
+        window.localStorage.setItem('pubKey', Buffer.from(publicKey).toString('hex'));
+
+        snapchat.updatePubRegistry(encryptedPrivate, {from: account})
+            .then((result) => {
+                console.log(result);
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    },
+    unlock: function(password) {
+        const ePriv = window.localStorage.getItem('ePrivKey');
+        const privateKey = App.decryptPriv(password, ePriv);
+        console.log(privateKey);
+
+        allEvents(snapchat.Photo, (error, response) => {
+            const hash = response.args['hash'];
+            ipfs.catText(hash, (err, response) => {
+                if(err) console.log(err);
+                console.log(response.toString());
+            })
+        });
     },
     decryptPriv: function (password, encryptedPrivKey) {
         return new Buffer(hexStringToByte(sjcl.decrypt(password, encryptedPrivKey)));
