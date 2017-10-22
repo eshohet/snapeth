@@ -14,7 +14,7 @@ import swal from 'sweetalert2'
 require('sweetalert2/dist/sweetalert2.min.css');
 
 // Import our contract artifacts and turn them into usable abstractions.
-import snapchat_artifacts from '../../build/contracts/Snapchat.json'
+import snapchat_artifacts from './contracts/Snapchat.json'
 
 // MetaCoin is our usable abstraction, which we'll use through the code below.
 let Snapchat = contract(snapchat_artifacts);
