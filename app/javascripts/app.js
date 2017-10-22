@@ -49,10 +49,6 @@ window.App = {
 
   getElements: function() {
     this.camera = document.getElementsByClassName("camera")[0];
-    this.canvas = document.getElementsByClassName("canvas")[0];
-    this.cameraContainer = document.getElementsByClassName(
-      "camera-container"
-    )[0];
   },
 
   startCamera: function() {
