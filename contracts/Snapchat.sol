@@ -5,7 +5,7 @@ contract Snapchat {
   mapping (address => string) public pubKeyRegistry;
   mapping (address => string) public privKeyRegistry;
 
-  event Photo(address indexed to, string cipher, string iv, string mac);
+  event Photo(address indexed to, address indexed from, string hash);
 
   function updatePubRegistry(string pubKey) public {
     pubKeyRegistry[msg.sender] = pubKey;
@@ -15,9 +15,9 @@ contract Snapchat {
     privKeyRegistry[msg.sender] = encryptedPriv;
   }
 
-  function sendPhoto(address recipient, string cipher, string iv, string mac) public {
+  function sendPhoto(address recipient, string hash) public {
     require(bytes(pubKeyRegistry[recipient]).length != 0);
-    Photo(recipient, cipher, iv, mac);
+    Photo(recipient, msg.sender, hash);
   }
 
 }

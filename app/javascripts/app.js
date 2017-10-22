@@ -7,6 +7,7 @@ import {default as contract} from 'truffle-contract'
 import {default as crypto} from 'crypto';
 import {default as eccrypto} from 'eccrypto';
 import {default as sjcl} from 'sjcl';
+import {default as ipfs} from 'ipfs-js';
 
 // Import our contract artifacts and turn them into usable abstractions.
 import snapchat_artifacts from '../../build/contracts/Snapchat.json'
@@ -17,9 +18,6 @@ let Snapchat = contract(snapchat_artifacts);
 // The following code is simple to show off interacting with your contracts.
 // As your needs grow you will likely need to change its form and structure.
 // For application bootstrapping, check out window.addEventListener below.
-let accounts;
-let account;
-let snapchat;
 
 function encrypt(text, password) {
     let cipher = crypto.createCipher('aes-256-ctr', password);
@@ -47,7 +45,10 @@ function hexStringToByte(str) {
     return new Uint8Array(a);
 }
 
+let accounts, account, snapchat;
+
 window.App = {
+
     start: async function () {
 
         // Bootstrap the MetaCoin abstraction for Use.
@@ -99,14 +100,14 @@ window.App = {
             this.photo = document.createElement("canvas");
 
             // photo needs same dimensions as camera
-            this.photo.width = 640;
-            this.photo.height = 480;
+            this.photo.width = 160;
+            this.photo.height = 120;
 
             document.body.appendChild(this.photo);
 
             // write camera image to photo
             var context = this.photo.getContext("2d");
-            context.drawImage(this.camera, 0, 0, 640, 480);
+            context.drawImage(this.camera, 0, 0, 160, 120);
 
             // add event listener to photo
             this.photo.addEventListener("click", () => {
@@ -120,7 +121,7 @@ window.App = {
             this.camera.style.display = "none";
         });
     },
-    sendPhoto: function() {
+    sendPhoto: function () {
         let image = new Image();
         image.src = this.photo.toDataURL("image/png");
         const pair = App.generatePubPriv('hello');
@@ -129,7 +130,16 @@ window.App = {
             const iv = Buffer.from(enc.iv).toString('hex');
             const mac = Buffer.from(enc.mac).toString('hex');
             const to = account;
-            snapchat.sendPhoto(to, cipher, iv, mac, {from: account});
+            ipfs.setProvider({host: 'localhost', port: '5001'});
+            ipfs.add(cipher + "," + iv + "," + mac, (err, hash) => {
+                if(err)
+                    console.log(err);
+                else {
+                    snapchat.sendPhoto(to, hash, {from: account}, (err, txn) => {
+                        console.log(err, txn);
+                    });
+                }
+            });
         })
     },
 
