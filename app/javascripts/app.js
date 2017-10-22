@@ -119,7 +119,6 @@ window.App = {
         image.src = this.photo.toDataURL("image/png");
         const publicKey = window.localStorage.getItem('pubKey');
         App.encrypt(image.src, new Buffer(hexStringToByte(publicKey))).then((enc) => {
-            console.log(enc);
             const cipher = Buffer.from(enc.ciphertext).toString('hex');
             const iv = Buffer.from(enc.iv).toString('hex');
             const mac = Buffer.from(enc.mac).toString('hex');
@@ -176,8 +175,6 @@ window.App = {
                     mac: _mac,
                     ephemPublicKey: pub
                 };
-
-                console.log(obj);
 
                 App.decrypt(obj, privateKey).then((d) => {
                     document.write('<img src="' + d.toString() + '" width="160" height="120" />');
