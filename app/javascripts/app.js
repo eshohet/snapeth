@@ -41,7 +41,60 @@ window.App = {
 
         snapchat = await Snapchat.deployed();
     });
+
+    this.getElements();
+    this.startCamera();
+    this.addEventListeners();
   },
+
+  getElements: function() {
+    this.camera = document.getElementsByClassName("camera")[0];
+    this.canvas = document.getElementsByClassName("canvas")[0];
+    this.cameraContainer = document.getElementsByClassName(
+      "camera-container"
+    )[0];
+  },
+
+  startCamera: function() {
+    // get access to camera
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then(stream => {
+          this.camera.src = window.URL.createObjectURL(stream);
+          this.camera.play();
+        });
+    }
+  },
+
+  addEventListeners: function() {
+    // take photo
+    this.camera.addEventListener("click", () => {
+      
+      this.photo = document.createElement("canvas");
+      
+      // photo needs same dimensions as camera
+      this.photo.width = 640;
+      this.photo.height = 480;
+      
+      document.body.appendChild(this.photo);
+
+      // write camera image to photo
+      var context = this.photo.getContext("2d");
+      context.drawImage(this.camera, 0, 0, 640, 480);
+      
+      // add event listener to photo
+      this.photo.addEventListener("click", () => {
+
+        // show camera and remove photo
+        this.camera.style.display = "block";
+        this.photo.remove();
+      });
+      
+      // hide camera
+      this.camera.style.display = "none";
+    });
+  }
 };
 
 window.addEventListener('load', function() {
