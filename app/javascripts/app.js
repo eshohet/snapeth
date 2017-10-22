@@ -19,6 +19,8 @@ import snapchat_artifacts from '../../build/contracts/Snapchat.json'
 // MetaCoin is our usable abstraction, which we'll use through the code below.
 let Snapchat = contract(snapchat_artifacts);
 
+const ipfsHost = "192.168.43.153";
+
 function hexStringToByte(str) {
     if (!str) {
         return new Uint8Array();
@@ -64,7 +66,7 @@ window.App = {
             account = accounts[0];
 
             snapchat = await Snapchat.deployed();
-            ipfs.setProvider({host: 'localhost', port: '5001'});
+            ipfs.setProvider({host: ipfsHost, port: '5001'});
 
         });
 
@@ -187,7 +189,7 @@ window.App = {
                 const privateKey = App.decryptPriv(password, ePriv);
                 const hash = response.args['hash'];
                 if (response.args['to'] === account) {
-                    $.get('http://localhost:5001/ipfs/' + hash, (data) => {
+                    $.get('http://' + ipfsHost + ':5001/ipfs/' + hash, (data) => {
                         const split = data.split(',');
                         const cipher = new Buffer(hexStringToByte(split[0]));
                         const _iv = new Buffer(hexStringToByte(split[1]));
