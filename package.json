@@ -47,6 +47,7 @@
     "sjcl": "^1.0.7",
     "sweetalert2": "^6.11.1",
     "truffle": "^3.4.11",
-    "truffle-contract": "^2.0.5"
+    "truffle-contract": "^2.0.5",
+    "truffle-hdwallet-provider": "0.0.3"
   }
 }
