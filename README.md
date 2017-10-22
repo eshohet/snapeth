@@ -1,14 +1,11 @@
-# eth-snapchat
+# Snapeth
 
 ## setup
 ```bash
-truffle install
+npm install
 ```
 
 ## running
 ```bash
-testrpc
-truffle deploy
+npm run server
 ```
-## web interface
-`open up index.html`
