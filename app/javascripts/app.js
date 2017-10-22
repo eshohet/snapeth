@@ -7,33 +7,14 @@ import {default as contract} from 'truffle-contract'
 import {default as crypto} from 'crypto';
 import {default as eccrypto} from 'eccrypto';
 import {default as sjcl} from 'sjcl';
+import {default as ipfs} from 'ipfs-js';
+import {default as $} from 'jquery';
 
 // Import our contract artifacts and turn them into usable abstractions.
 import snapchat_artifacts from '../../build/contracts/Snapchat.json'
 
 // MetaCoin is our usable abstraction, which we'll use through the code below.
 let Snapchat = contract(snapchat_artifacts);
-
-// The following code is simple to show off interacting with your contracts.
-// As your needs grow you will likely need to change its form and structure.
-// For application bootstrapping, check out window.addEventListener below.
-let accounts;
-let account;
-let snapchat;
-
-function encrypt(text, password) {
-    let cipher = crypto.createCipher('aes-256-ctr', password);
-    let crypted = cipher.update(text, 'utf8', 'hex');
-    crypted += cipher.final('hex');
-    return crypted;
-}
-
-function decrypt(text, password) {
-    let decipher = crypto.createDecipher('aes-256-ctr', password);
-    let dec = decipher.update(text, 'hex', 'utf8');
-    dec += decipher.final('utf8');
-    return dec;
-}
 
 function hexStringToByte(str) {
     if (!str) {
@@ -47,7 +28,18 @@ function hexStringToByte(str) {
     return new Uint8Array(a);
 }
 
+function allEvents(ev, cb) {
+    ev({}, {fromBlock: '0', toBlock: 'latest'}).get((error, results) => {
+        if (error) return cb(error);
+        results.forEach(result => cb(null, result));
+        ev().watch(cb);
+    })
+}
+
+let accounts, account, snapchat;
+
 window.App = {
+
     start: async function () {
 
         // Bootstrap the MetaCoin abstraction for Use.
@@ -69,6 +61,8 @@ window.App = {
             account = accounts[0];
 
             snapchat = await Snapchat.deployed();
+            ipfs.setProvider({host: 'localhost', port: '5001'});
+
         });
 
         this.getElements();
@@ -99,14 +93,14 @@ window.App = {
             this.photo = document.createElement("canvas");
 
             // photo needs same dimensions as camera
-            this.photo.width = 640;
-            this.photo.height = 480;
+            this.photo.width = 160;
+            this.photo.height = 120;
 
             document.body.appendChild(this.photo);
 
             // write camera image to photo
             var context = this.photo.getContext("2d");
-            context.drawImage(this.camera, 0, 0, 640, 480);
+            context.drawImage(this.camera, 0, 0, 160, 120);
 
             // add event listener to photo
             this.photo.addEventListener("click", () => {
@@ -120,19 +114,77 @@ window.App = {
             this.camera.style.display = "none";
         });
     },
-    getPrivateKey: {
-        //grabs private key from contract
+    sendPhoto: function () {
+        let image = new Image();
+        image.src = this.photo.toDataURL("image/png");
+        const publicKey = window.localStorage.getItem('pubKey');
+        App.encrypt(image.src, new Buffer(hexStringToByte(publicKey))).then((enc) => {
+            const cipher = Buffer.from(enc.ciphertext).toString('hex');
+            const iv = Buffer.from(enc.iv).toString('hex');
+            const mac = Buffer.from(enc.mac).toString('hex');
+            const ephemPublicKey = Buffer.from(enc.ephemPublicKey).toString('hex');
+
+            const to = account;
+
+            ipfs.add(cipher + "," + iv + "," + mac + "," + ephemPublicKey, (err, hash) => {
+                if (err)
+                    console.log(err);
+                else {
+                    snapchat.sendPhoto(to, hash, {from: account})
+                        .then((result) => {
+                            console.log(result);
+                        })
+                        .catch((error) => {
+                            console.log(error);
+                        });
+                }
+            });
+        })
     },
-    generatePubPriv: function (password) {
+    register: function (password) {
         //generate pub, priv, encrypted priv
         const privateKey = crypto.randomBytes(32);
         const publicKey = eccrypto.getPublic(privateKey);
         const encryptedPrivate = App.encryptPriv(password, Buffer.from(privateKey).toString('hex'));
-        return {
-            pub: publicKey,
-            priv: privateKey,
-            ePriv: encryptedPrivate
-        }
+        window.localStorage.setItem('ePrivKey', encryptedPrivate);
+        window.localStorage.setItem('pubKey', Buffer.from(publicKey).toString('hex'));
+
+        snapchat.updatePubRegistry(encryptedPrivate, {from: account})
+            .then((result) => {
+                console.log(result);
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    },
+    unlock: function (password) {
+        allEvents(snapchat.Photo, (error, response) => {
+            const ePriv = window.localStorage.getItem('ePrivKey');
+            const privateKey = App.decryptPriv(password, ePriv);
+            const hash = response.args['hash'];
+            $.get('http://localhost:5001/ipfs/' + hash, (data) => {
+                const split = data.split(',');
+                const cipher = new Buffer(hexStringToByte(split[0]));
+                const _iv = new Buffer(hexStringToByte(split[1]));
+                const _mac = new Buffer(hexStringToByte(split[2]));
+                const pub = new Buffer(hexStringToByte(split[3]));
+
+                const obj = {
+                    ciphertext: cipher,
+                    iv: _iv,
+                    mac: _mac,
+                    ephemPublicKey: pub
+                };
+
+                App.decrypt(obj, privateKey).then((d) => {
+                    document.write('<img src="' + d.toString() + '" width="160" height="120" />');
+                }).catch((e) => {
+                    console.log(e)
+                });
+
+
+            });
+        });
     },
     decryptPriv: function (password, encryptedPrivKey) {
         return new Buffer(hexStringToByte(sjcl.decrypt(password, encryptedPrivKey)));
