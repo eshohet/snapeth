@@ -9,7 +9,7 @@
     "dev": "webpack-dev-server --port 8081",
     "deploy": "./node_modules/truffle/build/cli.bundled.js deploy --reset",
     "server": "concurrently \"npm run testrpc\" \"sleep 3 && npm run deploy && npm run dev\"",
-    "live": "webpack-dev-server --port 8081 --host 0.0.0.0"
+    "live": "webpack-dev-server --port 8081 --host 0.0.0.0 --https"
   },
   "author": "Douglas von Kohorn",
   "license": "MIT",
